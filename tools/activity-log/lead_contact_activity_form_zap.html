@@ -1,0 +1,316 @@
+
+<style>
+* { box-sizing: border-box; }
+.form-wrap { padding: 1rem 0; font-family: var(--font-sans); }
+.tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+.tab { padding: 7px 18px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: 14px; }
+.tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+.section-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin: 1.25rem 0 0.5rem; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+input[type=text], input[type=date], input[type=url], textarea {
+  width: 100%; padding: 8px 10px; border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-md); background: var(--color-background-primary);
+  color: var(--color-text-primary); font-size: 14px; font-family: var(--font-sans); outline: none;
+}
+input:focus, textarea:focus { border-color: var(--color-border-primary); }
+textarea { resize: vertical; min-height: 70px; }
+.radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px; color: var(--color-text-secondary); background: transparent; }
+.radio-btn.selected { border-color: var(--color-border-info); background: var(--color-background-info); color: var(--color-text-info); font-weight: 500; }
+.zap-box { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-top: 1.5rem; }
+.zap-row { display: flex; gap: 8px; align-items: center; margin-top: 0.5rem; }
+.zap-row input { flex: 1; }
+.btn { padding: 8px 18px; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; border: 0.5px solid var(--color-border-primary); background: var(--color-background-secondary); color: var(--color-text-primary); }
+.btn:hover { background: var(--color-background-tertiary); }
+.btn-primary { background: var(--color-background-info); border-color: var(--color-border-info); color: var(--color-text-info); }
+.btn-primary:hover { opacity: 0.85; }
+.btn-full { width: 100%; margin-top: 1.25rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.output-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+.output-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; padding-bottom: 12px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--color-background-info); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; color: var(--color-text-info); flex-shrink: 0; }
+.field-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 14px; }
+.field-row:last-child { border-bottom: none; }
+.field-key { color: var(--color-text-secondary); min-width: 130px; }
+.field-val { color: var(--color-text-primary); text-align: right; max-width: 300px; word-break: break-word; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: var(--border-radius-md); font-size: 12px; font-weight: 500; background: var(--color-background-info); color: var(--color-text-info); }
+.badge.lead { background: var(--color-background-warning); color: var(--color-text-warning); }
+.block-val { display: block; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; margin-top: 4px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.status { margin-top: 0.75rem; padding: 10px 14px; border-radius: var(--border-radius-md); font-size: 13px; display: none; align-items: center; gap: 8px; }
+.status.success { display: flex; background: var(--color-background-success); color: var(--color-text-success); border: 0.5px solid var(--color-border-success); }
+.status.error { display: flex; background: var(--color-background-danger); color: var(--color-text-danger); border: 0.5px solid var(--color-border-danger); }
+.status.loading { display: flex; background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-secondary); }
+.copy-btn { margin-top: 0.75rem; padding: 7px 16px; background: transparent; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-secondary); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 6px; line-height: 1.5; }
+.zap-label { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; }
+</style>
+
+<div class="form-wrap">
+<h2 class="sr-only">New Lead/Contact Activity Form with Zapier integration</h2>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('form')"><i class="ti ti-edit" aria-hidden="true"></i> Fill form</button>
+  <button class="tab" onclick="switchTab('output')" id="output-tab"><i class="ti ti-file-text" aria-hidden="true"></i> View output</button>
+</div>
+
+<div id="form-panel">
+
+  <div class="row">
+    <div>
+      <div class="section-label">Lead/Contact name</div>
+      <input type="text" id="name" placeholder="e.g. Nina" />
+    </div>
+    <div>
+      <div class="section-label">Action date</div>
+      <input type="date" id="date" />
+    </div>
+  </div>
+
+  <div class="section-label">Action</div>
+  <div class="radio-group" id="action-group">
+    <div class="radio-btn" onclick="pick('action-group',this,'Call')"><i class="ti ti-phone" aria-hidden="true"></i> Call</div>
+    <div class="radio-btn" onclick="pick('action-group',this,'Meet/Zoom')"><i class="ti ti-video" aria-hidden="true"></i> Meet/Zoom</div>
+    <div class="radio-btn" onclick="pick('action-group',this,'Email')"><i class="ti ti-mail" aria-hidden="true"></i> Email</div>
+    <div class="radio-btn" onclick="pick('action-group',this,'Other')"><i class="ti ti-dots" aria-hidden="true"></i> Other</div>
+  </div>
+
+  <div class="section-label">Contact or Lead</div>
+  <div class="radio-group" id="type-group">
+    <div class="radio-btn" onclick="pick('type-group',this,'Contact')"><i class="ti ti-user-check" aria-hidden="true"></i> Contact</div>
+    <div class="radio-btn" onclick="pick('type-group',this,'Lead')"><i class="ti ti-user-plus" aria-hidden="true"></i> Lead</div>
+  </div>
+
+  <div class="section-label">Medium</div>
+  <input type="text" id="medium" placeholder="e.g. LinkedIn, referral, cold outreach..." />
+
+  <div class="section-label">Completed by</div>
+  <input type="text" id="completedby" placeholder="Your name" />
+
+  <div class="row">
+    <div>
+      <div class="section-label">Notes</div>
+      <textarea id="notes" placeholder="General notes from the interaction..."></textarea>
+    </div>
+    <div>
+      <div class="section-label">Outcome</div>
+      <textarea id="outcome" placeholder="What was the result?"></textarea>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="section-label">Suggestions/Ideas</div>
+      <textarea id="suggestions" placeholder="Any ideas discussed..."></textarea>
+    </div>
+    <div>
+      <div class="section-label">Questions</div>
+      <textarea id="questions" placeholder="Open questions..."></textarea>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="section-label">Key details</div>
+      <textarea id="keydetails" placeholder="Important facts to remember..."></textarea>
+    </div>
+    <div>
+      <div class="section-label">Next actions</div>
+      <textarea id="nextactions" placeholder="What happens next?"></textarea>
+    </div>
+  </div>
+
+  <div class="section-label">Transcript</div>
+  <textarea id="transcript" style="min-height:90px" placeholder="Paste call/meeting transcript here (optional)..."></textarea>
+
+  <div class="zap-box">
+    <div class="zap-label"><i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Zapier webhook</div>
+    <div class="zap-row">
+      <input type="url" id="webhook-url" placeholder="https://hooks.zapier.com/hooks/catch/..." />
+      <button class="btn" onclick="testWebhook()"><i class="ti ti-send" aria-hidden="true"></i> Test</button>
+    </div>
+    <p class="hint">In Zapier: New Zap → Trigger: <strong>Webhooks by Zapier</strong> → <strong>Catch Hook</strong> → copy the URL here.</p>
+    <div class="status" id="zap-status"></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" onclick="submitForm()">
+    <i class="ti ti-arrow-right" aria-hidden="true"></i> Generate output &amp; send to Zap
+  </button>
+
+</div>
+
+<div id="output-panel" style="display:none">
+  <div id="output-content">
+    <div style="text-align:center;padding:3rem 1rem;color:var(--color-text-secondary);font-size:14px">
+      <i class="ti ti-file-off" style="font-size:32px;display:block;margin-bottom:8px" aria-hidden="true"></i>
+      Fill out the form and click "Generate output &amp; send to Zap"
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const vals = {};
+
+function pick(groupId, el, value) {
+  document.querySelectorAll('#'+groupId+' .radio-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  vals[groupId] = value;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[tab==='form'?0:1].classList.add('active');
+  document.getElementById('form-panel').style.display = tab==='form' ? '' : 'none';
+  document.getElementById('output-panel').style.display = tab==='output' ? '' : 'none';
+}
+
+function g(id) { return document.getElementById(id).value.trim(); }
+
+function buildPayload() {
+  const date = g('date');
+  const formatted = date ? new Date(date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+  return {
+    name: g('name'),
+    date: formatted,
+    action: vals['action-group'] || '',
+    type: vals['type-group'] || '',
+    medium: g('medium'),
+    completed_by: g('completedby'),
+    notes: g('notes'),
+    outcome: g('outcome'),
+    suggestions_ideas: g('suggestions'),
+    questions: g('questions'),
+    key_details: g('keydetails'),
+    next_actions: g('nextactions'),
+    transcript: g('transcript'),
+    submitted_at: new Date().toISOString()
+  };
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('zap-status');
+  el.className = 'status ' + type;
+  const icons = { success: 'ti-circle-check', error: 'ti-alert-circle', loading: 'ti-loader' };
+  el.innerHTML = `<i class="ti ${icons[type]}" aria-hidden="true"></i> ${msg}`;
+}
+
+async function sendToZap(payload) {
+  const url = g('webhook-url');
+  if (!url) return { skipped: true };
+  setStatus('Sending to Zapier...', 'loading');
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      mode: 'no-cors'
+    });
+    setStatus('Sent to Zapier successfully!', 'success');
+    return { ok: true };
+  } catch(e) {
+    setStatus('Could not reach webhook. Check the URL and try again.', 'error');
+    return { ok: false };
+  }
+}
+
+async function testWebhook() {
+  const url = g('webhook-url');
+  if (!url) { setStatus('Paste a webhook URL first.', 'error'); return; }
+  setStatus('Sending test payload...', 'loading');
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test: true, message: 'Test from Lead/Contact Activity form', submitted_at: new Date().toISOString() }),
+      mode: 'no-cors'
+    });
+    setStatus('Test sent! Check your Zap trigger in Zapier.', 'success');
+  } catch(e) {
+    setStatus('Could not reach webhook. Check the URL.', 'error');
+  }
+}
+
+function initials(name) {
+  return name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2) || '?';
+}
+
+function row(label, value) {
+  if (!value) return '';
+  return `<div class="field-row"><span class="field-key">${label}</span><span class="field-val">${value}</span></div>`;
+}
+function blockRow(label, value) {
+  if (!value) return '';
+  return `<div style="padding:8px 0;font-size:14px;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <span style="color:var(--color-text-secondary)">${label}</span>
+    <span class="block-val">${value}</span>
+  </div>`;
+}
+
+async function submitForm() {
+  const payload = buildPayload();
+  if (!payload.name && !payload.action && !payload.type) {
+    alert('Please fill in at least a name, action, and type.');
+    return;
+  }
+  await sendToZap(payload);
+  renderOutput(payload);
+  switchTab('output');
+}
+
+function renderOutput(p) {
+  let html = `<div class="output-card">
+    <div class="output-header">
+      <div class="avatar">${initials(p.name||'?')}</div>
+      <div>
+        <div style="font-size:16px;font-weight:500">${p.name||'—'}</div>
+        <div style="font-size:13px;color:var(--color-text-secondary)">${p.date||'No date'}${p.action?' · '+p.action:''}</div>
+      </div>
+      ${p.type?`<div style="margin-left:auto"><span class="badge ${p.type==='Lead'?'lead':''}">${p.type}</span></div>`:''}
+    </div>
+    ${row('Action', p.action)}
+    ${row('Date', p.date)}
+    ${row('Medium', p.medium)}
+    ${row('Completed by', p.completed_by)}
+  </div>`;
+
+  if (p.notes||p.outcome||p.suggestions_ideas||p.questions||p.key_details||p.next_actions) {
+    html += `<div class="output-card">
+      ${blockRow('Notes', p.notes)}
+      ${blockRow('Outcome', p.outcome)}
+      ${blockRow('Suggestions / ideas', p.suggestions_ideas)}
+      ${blockRow('Questions', p.questions)}
+      ${blockRow('Key details', p.key_details)}
+      ${blockRow('Next actions', p.next_actions)}
+    </div>`;
+  }
+
+  if (p.transcript) {
+    html += `<div class="output-card">${blockRow('Transcript', p.transcript)}</div>`;
+  }
+
+  const zapUrl = g('webhook-url');
+  if (zapUrl) {
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--border-radius-md);background:var(--color-background-success);border:0.5px solid var(--color-border-success);color:var(--color-text-success);font-size:13px;margin-bottom:0.75rem">
+      <i class="ti ti-bolt" aria-hidden="true"></i> Data sent to your Zap
+    </div>`;
+  }
+
+  html += `<button class="copy-btn" onclick="copyOutput()"><i class="ti ti-copy" aria-hidden="true"></i> Copy as text</button>`;
+  document.getElementById('output-content').innerHTML = html;
+}
+
+function copyOutput() {
+  const p = buildPayload();
+  const fields = [
+    ['Name', p.name],['Date', p.date],['Action', p.action],['Type', p.type],
+    ['Medium', p.medium],['Completed by', p.completed_by],['Notes', p.notes],
+    ['Outcome', p.outcome],['Suggestions/ideas', p.suggestions_ideas],
+    ['Questions', p.questions],['Key details', p.key_details],
+    ['Next actions', p.next_actions],['Transcript', p.transcript]
+  ];
+  const text = fields.filter(([,v])=>v).map(([k,v])=>`${k}:\n${v}`).join('\n\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.querySelector('.copy-btn');
+    if(btn){ btn.innerHTML='<i class="ti ti-check" aria-hidden="true"></i> Copied!'; setTimeout(()=>{ btn.innerHTML='<i class="ti ti-copy" aria-hidden="true"></i> Copy as text'; },2000); }
+  });
+}
+</script>
