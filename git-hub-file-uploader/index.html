@@ -3,751 +3,660 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Repo Uploader</title>
+<title>GitHub Uploader</title>
 <style>
   :root{
-    --ink:#0d1117;
-    --paper:#f6f5f2;
-    --line:#d8d4cb;
-    --moss:#2f5d4e;
-    --moss-bright:#3f8f6f;
-    --rust:#a5432a;
-    --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
-    --serif: Georgia, 'Times New Roman', serif;
+    --bg:#0e1116;
+    --panel:#151a21;
+    --panel-2:#1b212a;
+    --line:#262e39;
+    --text:#e6e9ef;
+    --text-dim:#8b95a5;
+    --accent:#5ec9a8;
+    --accent-dim:#2f5c4e;
+    --warn:#e0a94c;
+    --err:#e0684c;
+    --ok:#5ec9a8;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:var(--mono);
-    padding:40px 20px 80px;
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans); -webkit-font-smoothing:antialiased;
     min-height:100vh;
   }
-  .wrap{max-width:640px;margin:0 auto;}
-  header{margin-bottom:28px;}
-  .eyebrow{
-    font-size:12px;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    color:var(--moss);
-    margin-bottom:8px;
+  .wrap{max-width:720px; margin:0 auto; padding:20px 16px 60px;}
+  header{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+  .logo{
+    width:34px; height:34px; border-radius:8px;
+    background:linear-gradient(135deg, var(--accent), #3a8f78);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; color:#0e1116; font-size:15px;
+    flex-shrink:0;
   }
-  h1{
-    font-family:var(--serif);
-    font-size:32px;
-    font-weight:400;
-    margin:0 0 10px;
-    letter-spacing:-.01em;
-  }
-  .sub{color:#5a5750;font-size:14px;line-height:1.6;max-width:520px;}
+  h1{font-size:17px; margin:0; font-weight:600; letter-spacing:-0.01em;}
+  .sub{color:var(--text-dim); font-size:12.5px; margin-top:1px;}
 
-  /* Tabs */
-  .tabs{
-    display:flex;
-    gap:2px;
-    margin-bottom:20px;
-    border-bottom:1px solid var(--line);
-  }
+  .tabs{display:flex; gap:4px; margin-bottom:16px; background:var(--panel); padding:4px; border-radius:10px; border:1px solid var(--line);}
   .tab{
-    padding:10px 18px;
-    font-family:var(--mono);
-    font-size:12.5px;
-    letter-spacing:.05em;
-    text-transform:uppercase;
-    color:#8a867c;
-    background:none;
-    border:none;
-    cursor:pointer;
-    border-bottom:2px solid transparent;
-    margin-bottom:-1px;
+    flex:1; text-align:center; padding:9px 0; border-radius:7px; cursor:pointer;
+    font-size:13.5px; font-weight:600; color:var(--text-dim); user-select:none;
+    transition:background .15s, color .15s;
   }
-  .tab.active{color:var(--moss);border-bottom-color:var(--moss-bright);}
+  .tab.active{background:var(--accent-dim); color:var(--accent);}
   .panel{display:none;}
   .panel.active{display:block;}
 
-  .card{
-    background:#fff;
-    border:1px solid var(--line);
-    border-radius:2px;
-    padding:24px;
-    margin-bottom:18px;
-  }
-  .card-title{
-    font-size:11px;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:#8a867c;
-    margin-bottom:16px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .card-title .dot{
-    width:6px;height:6px;border-radius:50%;
-    background:var(--line);
-    display:inline-block;
-  }
-  .card-title .dot.done{background:var(--moss-bright);}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px;}
+  .card h2{font-size:13px; margin:0 0 12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; font-weight:700;}
 
-  label{
-    display:block;
-    font-size:12px;
-    color:#5a5750;
-    margin-bottom:6px;
-  }
-  input[type=text], input[type=password]{
-    width:100%;
-    padding:10px 12px;
-    font-family:var(--mono);
-    font-size:14px;
-    border:1px solid var(--line);
-    border-radius:2px;
-    background:#fdfcfa;
-    color:var(--ink);
-    margin-bottom:16px;
-  }
-  input[type=text]:focus, input[type=password]:focus{
+  label{display:block; font-size:12.5px; color:var(--text-dim); margin:10px 0 5px; font-weight:600;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=password], select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 11px; border-radius:8px; font-size:14px; font-family:var(--mono);
     outline:none;
-    border-color:var(--moss-bright);
   }
-  select{
-    width:100%;
-    padding:10px 12px;
-    font-family:var(--mono);
-    font-size:14px;
-    border:1px solid var(--line);
-    border-radius:2px;
-    background:#fdfcfa;
-    color:var(--ink);
-    margin-bottom:16px;
-  }
-  .row{display:flex;gap:12px;}
+  input[type=text]:focus, input[type=password]:focus, select:focus{border-color:var(--accent);}
+  .row{display:flex; gap:10px;}
   .row > div{flex:1;}
+  .hint{font-size:11.5px; color:var(--text-dim); margin-top:5px; line-height:1.4;}
 
-  .help{
-    font-size:12px;
-    color:#8a867c;
-    margin:-10px 0 16px;
-    line-height:1.5;
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .toggle-row .label{font-size:13px;}
+  .toggle-row .desc{font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+  .switch{position:relative; width:40px; height:22px; flex-shrink:0; margin-left:12px;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:var(--panel-2); border:1px solid var(--line); border-radius:22px; cursor:pointer; transition:.15s;}
+  .slider:before{content:""; position:absolute; width:16px; height:16px; left:2px; top:2px; background:var(--text-dim); border-radius:50%; transition:.15s;}
+  .switch input:checked + .slider{background:var(--accent-dim); border-color:var(--accent);}
+  .switch input:checked + .slider:before{transform:translateX(18px); background:var(--accent);}
+
+  button{
+    font-family:var(--sans); font-weight:600; font-size:13.5px; border:none; border-radius:8px;
+    padding:10px 16px; cursor:pointer; transition:filter .1s, opacity .1s;
   }
-  .help a{color:var(--moss);}
+  button:active{filter:brightness(.9);}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-primary{background:var(--accent); color:#0d1712; width:100%;}
+  .btn-secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+  .btn-danger{background:transparent; color:var(--err); border:1px solid #5a2f2a;}
+  .btn-small{padding:6px 11px; font-size:12px;}
 
   .drop{
-    border:1.5px dashed var(--line);
-    border-radius:2px;
-    padding:28px;
-    text-align:center;
-    color:#8a867c;
-    font-size:13px;
-    cursor:pointer;
-    transition:.15s;
-    background:#fdfcfa;
+    border:1.5px dashed var(--line); border-radius:12px; padding:26px 16px; text-align:center;
+    color:var(--text-dim); font-size:13px; cursor:pointer; transition:border-color .15s, background .15s;
   }
-  .drop.active{border-color:var(--moss-bright);background:#f2f7f4;color:var(--moss);}
-  .drop input{display:none;}
+  .drop.drag{border-color:var(--accent); background:var(--panel-2);}
+  .drop strong{color:var(--text);}
+  #fileInput{display:none;}
 
-  .filelist{margin-top:14px;}
-  .fileitem{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:10px 12px;
-    border:1px solid var(--line);
-    border-radius:2px;
-    margin-bottom:8px;
-    font-size:13px;
-    background:#fdfcfa;
-  }
-  .fileitem .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;}
-  .fileitem .size{color:#8a867c;margin-left:10px;flex-shrink:0;}
-  .fileitem .remove{
-    color:var(--rust);cursor:pointer;margin-left:12px;flex-shrink:0;font-size:12px;
-  }
-
-  button.primary{
-    width:100%;
-    padding:14px;
-    background:var(--moss);
-    color:#fff;
-    border:none;
-    border-radius:2px;
-    font-family:var(--mono);
-    font-size:14px;
-    letter-spacing:.03em;
-    cursor:pointer;
-    transition:.15s;
-  }
-  button.primary:hover:not(:disabled){background:var(--moss-bright);}
-  button.primary:disabled{background:#c9c5bb;cursor:not-allowed;}
-
-  button.secondary{
-    padding:10px 16px;
-    background:#fff;
-    color:var(--moss);
-    border:1px solid var(--moss);
-    border-radius:2px;
-    font-family:var(--mono);
-    font-size:12.5px;
-    cursor:pointer;
-    transition:.15s;
-  }
-  button.secondary:hover{background:#f2f7f4;}
-  button.danger{
-    padding:8px 12px;
-    background:#fff;
-    color:var(--rust);
-    border:1px solid var(--rust);
-    border-radius:2px;
-    font-family:var(--mono);
-    font-size:11.5px;
-    cursor:pointer;
-  }
-  button.danger:hover{background:#fbf0ee;}
-
-  .btn-row{display:flex;gap:10px;margin-top:4px;}
-  .btn-row button{flex:1;}
-
-  .profile-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 14px;
-    border:1px solid var(--line);
-    border-radius:2px;
-    margin-bottom:8px;
-    background:#fdfcfa;
+  .filelist{margin-top:12px;}
+  .file-row{
+    display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);
     font-size:13px;
   }
-  .profile-row .meta{color:#8a867c;font-size:11.5px;margin-top:2px;}
-  .profile-row .actions{display:flex;gap:8px;flex-shrink:0;}
-  .profile-row button.mini{
-    padding:6px 10px;font-size:11px;border:1px solid var(--line);background:#fff;
-    border-radius:2px;cursor:pointer;color:var(--moss);
-  }
-  .profile-row button.mini:hover{border-color:var(--moss-bright);}
+  .file-row:last-child{border-bottom:none;}
+  .file-name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .file-size{color:var(--text-dim); font-size:11.5px; font-family:var(--mono); flex-shrink:0;}
+  .file-size.oversize{color:var(--err);}
+  .file-remove{color:var(--text-dim); cursor:pointer; padding:2px 6px; flex-shrink:0;}
 
-  .toggle-row{
-    display:flex;align-items:flex-start;gap:10px;
-    padding:12px;background:#f2f7f4;border:1px solid var(--line);
-    border-radius:2px;margin-bottom:16px;font-size:12.5px;color:#3d4a45;line-height:1.5;
-  }
-  .toggle-row input{margin-top:3px;}
-
-  .log{
-    margin-top:20px;
-    font-size:12.5px;
-    line-height:1.9;
-    color:#5a5750;
-  }
-  .log .step{display:flex;gap:10px;padding:2px 0;}
-  .log .tag{
-    flex-shrink:0;width:78px;color:#8a867c;text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;padding-top:2px;
-  }
-  .log .ok{color:var(--moss);}
-  .log .err{color:var(--rust);}
-  .log a{color:var(--moss);}
-
-  .progress-outer{
-    height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:14px;
-  }
-  .progress-inner{
-    height:100%;background:var(--moss-bright);width:0%;transition:width .2s;
+  .warn-banner{
+    background:#2a2213; border:1px solid #4a3a1a; color:var(--warn); font-size:12px;
+    border-radius:8px; padding:9px 11px; margin-top:10px; line-height:1.5;
   }
 
-  .empty{color:#8a867c;font-size:13px;padding:12px 0;}
+  .profile-bar{display:flex; gap:8px; margin-bottom:14px;}
+  .profile-bar select{flex:1;}
 
-  footer{
-    text-align:center;font-size:11px;color:#a8a49a;margin-top:30px;
+  .log{margin-top:14px; display:flex; flex-direction:column; gap:10px;}
+  .log-item{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:11px 13px;}
+  .log-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .log-name{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .log-size{font-size:11px; color:var(--text-dim); font-family:var(--mono); flex-shrink:0;}
+  .log-steps{font-family:var(--mono); font-size:11.5px; color:var(--text-dim); margin-top:7px; line-height:1.75;}
+  .step-ok{color:var(--ok);}
+  .step-err{color:var(--err);}
+  .step-tag{display:inline-block; width:64px; color:var(--text-dim); opacity:.7;}
+  .log-link{font-size:11.5px; margin-top:6px;}
+  .log-link a{color:var(--accent); text-decoration:none;}
+  .log-link a:hover{text-decoration:underline;}
+
+  .profiles-list{display:flex; flex-direction:column; gap:8px;}
+  .profile-item{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:10px 12px;
+    display:flex; align-items:center; gap:10px;
   }
+  .profile-info{flex:1; min-width:0;}
+  .profile-title{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .profile-sub{font-size:11px; color:var(--text-dim); font-family:var(--mono); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .profile-actions{display:flex; gap:6px; flex-shrink:0;}
+
+  .empty{color:var(--text-dim); font-size:13px; text-align:center; padding:14px 0;}
+  .footer-actions{display:flex; gap:8px; margin-top:14px;}
+  .footer-actions button{flex:1;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <div class="eyebrow">blob → tree → commit → ref</div>
-    <h1>Repo Uploader</h1>
-    <div class="sub">Pushes files straight into a GitHub repository using the Git Data API — no command line, no PowerShell. Handles files well past 60MB.</div>
+    <div class="logo">↑</div>
+    <div>
+      <h1>GitHub Uploader</h1>
+      <div class="sub">Push files straight into a repo — no PowerShell</div>
+    </div>
   </header>
 
   <div class="tabs">
-    <button class="tab active" data-tab="upload">Upload</button>
-    <button class="tab" data-tab="settings">Settings</button>
+    <div class="tab active" data-tab="upload">Upload</div>
+    <div class="tab" data-tab="settings">Settings</div>
   </div>
 
-  <!-- ============ UPLOAD PANEL ============ -->
+  <!-- UPLOAD PANEL -->
   <div class="panel active" id="panel-upload">
 
     <div class="card">
-      <div class="card-title"><span class="dot" id="dot-auth"></span> Credentials</div>
+      <h2>Destination</h2>
 
-      <label for="profileSelect">Saved repo</label>
-      <select id="profileSelect">
-        <option value="">— choose a saved repo, or fill in manually below —</option>
-      </select>
+      <div class="profile-bar">
+        <select id="profileSelect">
+          <option value="">Load a saved repo…</option>
+        </select>
+        <button class="btn-secondary btn-small" id="saveProfileBtn">Save this repo</button>
+      </div>
 
-      <label for="token">Personal Access Token</label>
-      <input type="password" id="token" placeholder="github_pat_...">
-      <div class="help">Needs "Contents: Read and write" on the target repo. <a href="https://github.com/settings/tokens?type=beta" target="_blank">Create one →</a></div>
+      <label>Personal access token</label>
+      <input type="password" id="token" placeholder="github_pat_…" autocomplete="off">
+      <div class="hint">Filled in automatically from the CONFIG block at the top of this file, so you shouldn't need to touch it. You can still overwrite it here for a one-off upload to a different repo — that won't get saved anywhere unless you turn on "Also remember the token" in Settings.</div>
 
       <div class="row">
         <div>
-          <label for="owner">Repo owner</label>
-          <input type="text" id="owner" placeholder="your-username">
+          <label>Repo owner</label>
+          <input type="text" id="owner" placeholder="e.g. c1jumpw">
         </div>
         <div>
-          <label for="repo">Repository</label>
-          <input type="text" id="repo" placeholder="my-repo">
+          <label>Repository</label>
+          <input type="text" id="repo" placeholder="e.g. mkp-tools">
         </div>
       </div>
       <div class="row">
         <div>
-          <label for="branch">Branch</label>
+          <label>Branch</label>
           <input type="text" id="branch" placeholder="main" value="main">
         </div>
         <div>
-          <label for="path">Folder path (optional)</label>
-          <input type="text" id="path" placeholder="uploads/">
+          <label>Folder path</label>
+          <input type="text" id="folder" placeholder="e.g. pdl (blank = repo root)">
         </div>
       </div>
-
-      <div class="btn-row">
-        <button class="secondary" id="saveProfileBtn">Save this repo</button>
-      </div>
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="dot" id="dot-files"></span> Files</div>
-      <div class="drop" id="drop">
-        Drop files here, or click to choose<br>
-        <input type="file" id="fileInput" multiple>
+      <h2>Files</h2>
+      <div class="drop" id="dropZone">
+        <strong>Tap to choose files</strong><br>or drag &amp; drop here
       </div>
+      <input type="file" id="fileInput" multiple>
       <div class="filelist" id="fileList"></div>
+      <div class="warn-banner" id="sizeWarning" style="display:none;"></div>
+      <button class="btn-primary" id="uploadBtn" style="margin-top:14px;" disabled>Upload files</button>
     </div>
 
-    <button class="primary" id="uploadBtn" disabled>Select files to continue</button>
-
-    <div class="progress-outer" id="progressWrap" style="display:none;">
-      <div class="progress-inner" id="progressBar"></div>
+    <div class="card" id="logCard" style="display:none;">
+      <h2>Progress</h2>
+      <div class="log" id="log"></div>
+      <div class="footer-actions" id="retryBar" style="display:none;">
+        <button class="btn-secondary" id="retryFailedBtn">Retry failed files</button>
+      </div>
     </div>
 
-    <div class="log" id="log"></div>
   </div>
 
-  <!-- ============ SETTINGS PANEL ============ -->
+  <!-- SETTINGS PANEL -->
   <div class="panel" id="panel-settings">
     <div class="card">
-      <div class="card-title">Saved repos</div>
-      <div id="profileList"></div>
-      <div class="empty" id="profileEmpty" style="display:none;">No saved repos yet. Fill in the Upload tab and click "Save this repo".</div>
+      <h2>Token storage</h2>
+      <div class="toggle-row" style="border-top:none; padding-top:0; margin-top:0;">
+        <div>
+          <div class="label">Also remember the token</div>
+          <div class="desc">Off by default. If on, your PAT is saved in this browser's local storage in plain text — fine on a personal machine, but never commit this file anywhere with it hardcoded.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="saveTokenToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Token storage</div>
-      <div class="toggle-row">
-        <input type="checkbox" id="saveTokenToggle">
-        <span>Also remember the token when saving a repo, so it's pre-filled automatically. Off by default — your token is sensitive, and this stores it as plain text in this browser's local storage. Leave it off if this machine is shared, and always use fine-grained tokens scoped only to the repos you need, with an expiration date set.</span>
+      <h2>Saved repos</h2>
+      <div class="profiles-list" id="profilesList"></div>
+      <div class="empty" id="profilesEmpty" style="display:none;">No saved repos yet. Save one from the Upload tab.</div>
+      <div class="footer-actions">
+        <button class="btn-danger" id="clearAllBtn">Clear all</button>
       </div>
-      <button class="danger" id="clearAllBtn">Clear all saved repos</button>
     </div>
   </div>
 
-  <footer>Runs entirely in your browser · calls api.github.com directly</footer>
 </div>
 
 <script>
-const STORAGE_KEY = 'repoUploaderProfiles';
-const TOKEN_TOGGLE_KEY = 'repoUploaderSaveTokens';
+(function(){
+  "use strict";
 
-const state = { files: [] };
-
-/* ---------- tab switching ---------- */
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab === 'settings') renderProfileList();
-  });
-});
-
-/* ---------- profile storage helpers ---------- */
-function getProfiles(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch(e){ return []; }
-}
-function setProfiles(list){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
-function getSaveTokenPref(){
-  return localStorage.getItem(TOKEN_TOGGLE_KEY) === 'true';
-}
-function setSaveTokenPref(val){
-  localStorage.setItem(TOKEN_TOGGLE_KEY, val ? 'true' : 'false');
-}
-
-const saveTokenToggle = document.getElementById('saveTokenToggle');
-saveTokenToggle.checked = getSaveTokenPref();
-saveTokenToggle.addEventListener('change', () => setSaveTokenPref(saveTokenToggle.checked));
-
-document.getElementById('clearAllBtn').addEventListener('click', () => {
-  if(confirm('Remove all saved repos from this browser?')){
-    setProfiles([]);
-    renderProfileList();
-    populateProfileDropdown();
-  }
-});
-
-/* ---------- populate dropdown on Upload tab ---------- */
-function populateProfileDropdown(){
-  const sel = document.getElementById('profileSelect');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— choose a saved repo, or fill in manually below —</option>';
-  getProfiles().forEach((p, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = `${p.name} (${p.owner}/${p.repo} @ ${p.branch})`;
-    sel.appendChild(opt);
-  });
-  if(current) sel.value = current;
-}
-
-document.getElementById('profileSelect').addEventListener('change', (e) => {
-  const idx = e.target.value;
-  if(idx === '') return;
-  const p = getProfiles()[idx];
-  if(!p) return;
-  document.getElementById('owner').value = p.owner || '';
-  document.getElementById('repo').value = p.repo || '';
-  document.getElementById('branch').value = p.branch || 'main';
-  document.getElementById('path').value = p.path || '';
-  if(p.token) document.getElementById('token').value = p.token;
-  updateBtn();
-});
-
-document.getElementById('saveProfileBtn').addEventListener('click', () => {
-  const owner = document.getElementById('owner').value.trim();
-  const repo = document.getElementById('repo').value.trim();
-  const branch = document.getElementById('branch').value.trim() || 'main';
-  const path = document.getElementById('path').value.trim();
-  const token = document.getElementById('token').value.trim();
-
-  if(!owner || !repo){
-    alert('Fill in at least the repo owner and repository name before saving.');
-    return;
-  }
-  const name = prompt('Name this saved repo (e.g. "mkp-tools / pdl"):', `${owner}/${repo}`);
-  if(name === null) return;
-
-  const profiles = getProfiles();
-  profiles.push({
-    name, owner, repo, branch, path,
-    token: getSaveTokenPref() ? token : undefined
-  });
-  setProfiles(profiles);
-  populateProfileDropdown();
-  alert(`Saved "${name}".`);
-});
-
-/* ---------- settings tab: profile list ---------- */
-function renderProfileList(){
-  const listEl = document.getElementById('profileList');
-  const emptyEl = document.getElementById('profileEmpty');
-  const profiles = getProfiles();
-  listEl.innerHTML = '';
-  emptyEl.style.display = profiles.length ? 'none' : 'block';
-
-  profiles.forEach((p, i) => {
-    const row = document.createElement('div');
-    row.className = 'profile-row';
-    row.innerHTML = `
-      <div>
-        <div>${p.name}</div>
-        <div class="meta">${p.owner}/${p.repo} @ ${p.branch}${p.path ? ' → ' + p.path : ''}${p.token ? ' · token saved' : ''}</div>
-      </div>
-      <div class="actions">
-        <button class="mini" data-load="${i}">Load</button>
-        <button class="mini" data-del="${i}" style="color:#a5432a;">Delete</button>
-      </div>`;
-    listEl.appendChild(row);
-  });
-
-  listEl.querySelectorAll('[data-load]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelector('.tab[data-tab="upload"]').click();
-      document.getElementById('profileSelect').value = btn.dataset.load;
-      document.getElementById('profileSelect').dispatchEvent(new Event('change'));
-    });
-  });
-  listEl.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const profiles = getProfiles();
-      profiles.splice(+btn.dataset.del, 1);
-      setProfiles(profiles);
-      renderProfileList();
-      populateProfileDropdown();
-    });
-  });
-}
-
-/* ---------- file handling ---------- */
-const dropEl = document.getElementById('drop');
-const fileInput = document.getElementById('fileInput');
-const fileListEl = document.getElementById('fileList');
-const uploadBtn = document.getElementById('uploadBtn');
-const logEl = document.getElementById('log');
-const progressWrap = document.getElementById('progressWrap');
-const progressBar = document.getElementById('progressBar');
-const dotFiles = document.getElementById('dot-files');
-
-function fmtSize(bytes){
-  if(bytes < 1024) return bytes + ' B';
-  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/(1024*1024)).toFixed(1) + ' MB';
-}
-
-function renderFiles(){
-  fileListEl.innerHTML = '';
-  state.files.forEach((f, i) => {
-    const div = document.createElement('div');
-    div.className = 'fileitem';
-    div.innerHTML = `<span class="name">${f.name}</span><span class="size">${fmtSize(f.size)}</span><span class="remove" data-i="${i}">remove</span>`;
-    fileListEl.appendChild(div);
-  });
-  fileListEl.querySelectorAll('.remove').forEach(el => {
-    el.onclick = () => { state.files.splice(+el.dataset.i, 1); renderFiles(); updateBtn(); };
-  });
-  dotFiles.classList.toggle('done', state.files.length > 0);
-}
-
-function updateBtn(){
-  const hasCreds = document.getElementById('token').value && document.getElementById('owner').value && document.getElementById('repo').value && document.getElementById('branch').value;
-  const dotAuth = document.getElementById('dot-auth');
-  dotAuth.classList.toggle('done', !!hasCreds);
-  uploadBtn.disabled = !(hasCreds && state.files.length > 0);
-  uploadBtn.textContent = uploadBtn.disabled
-    ? (state.files.length === 0 ? 'Select files to continue' : 'Fill in credentials to continue')
-    : `Upload ${state.files.length} file${state.files.length > 1 ? 's' : ''}`;
-}
-
-['token','owner','repo','branch'].forEach(id => document.getElementById(id).addEventListener('input', updateBtn));
-
-dropEl.addEventListener('click', () => fileInput.click());
-dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('active'); });
-dropEl.addEventListener('dragleave', () => dropEl.classList.remove('active'));
-dropEl.addEventListener('drop', e => {
-  e.preventDefault();
-  dropEl.classList.remove('active');
-  addFiles(e.dataTransfer.files);
-});
-fileInput.addEventListener('change', () => addFiles(fileInput.files));
-
-function addFiles(fileListArg){
-  Array.from(fileListArg).forEach(f => state.files.push(f));
-  renderFiles();
-  updateBtn();
-}
-
-function logStep(tag, msg, cls){
-  const row = document.createElement('div');
-  row.className = 'step';
-  row.innerHTML = `<span class="tag">${tag}</span><span class="${cls||''}">${msg}</span>`;
-  logEl.appendChild(row);
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-function fileToBase64(file){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function ghFetch(url, token, options={}){
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github+json',
-      ...(options.headers||{})
-    }
-  });
-  if(!res.ok){
-    const body = await res.text();
-    throw new Error(`${res.status} ${res.statusText} — ${body.slice(0,200)}`);
-  }
-  return res.json();
-}
-
-function delay(ms){ return new Promise(res => setTimeout(res, ms)); }
-
-const MAX_RETRIES = 4;
-const SIZE_LIMIT_BYTES = 40 * 1024 * 1024; // ~40MB practical ceiling on the blobs API
-
-async function uploadOneFileWithRetry(file, config, onProgress, logStep){
-  let lastErr;
-  for(let attempt = 1; attempt <= MAX_RETRIES; attempt++){
-    try{
-      if(attempt > 1) logStep('retry', `attempt ${attempt} of ${MAX_RETRIES}...`);
-      await uploadOneFile(file, config, onProgress);
-      return; // success
-    } catch(err){
-      lastErr = err;
-      const msg = err.message || '';
-      const isTooLarge = msg.includes('too large to process');
-      const isRetryable = msg.includes('not a fast forward') || msg.includes('Failed to fetch') || msg.includes('NetworkError');
-
-      if(isTooLarge){
-        throw new Error(`File exceeds GitHub's practical upload size limit (~40MB) for this method. Needs Git LFS or a local push instead.`);
-      }
-      if(!isRetryable || attempt === MAX_RETRIES){
-        throw err;
-      }
-      const backoff = 1200 * attempt;
-      logStep('wait', `${msg.slice(0,60)} — retrying in ${(backoff/1000).toFixed(1)}s...`, 'err');
-      await delay(backoff);
-    }
-  }
-  throw lastErr;
-}
-
-async function uploadOneFile(file, {token, owner, repo, branch, folderPath}, onProgress){
-  const targetPath = (folderPath ? folderPath.replace(/^\/|\/$/g,'') + '/' : '') + file.name;
-
-  onProgress(5);
-  logStep('read', `encoding ${file.name}...`);
-  const base64 = await fileToBase64(file);
-
-  onProgress(20);
-  logStep('blob', 'creating blob object...');
-  const blob = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, token, {
-    method: 'POST',
-    body: JSON.stringify({ content: base64, encoding: 'base64' })
-  });
-
-  onProgress(45);
-  logStep('ref', `reading branch ${branch}...`);
-  const ref = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, token);
-  const latestCommitSha = ref.object.sha;
-
-  onProgress(55);
-  const commitData = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, token);
-  const baseTreeSha = commitData.tree.sha;
-
-  onProgress(65);
-  logStep('tree', `placing at ${targetPath}...`);
-  const newTree = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, token, {
-    method: 'POST',
-    body: JSON.stringify({
-      base_tree: baseTreeSha,
-      tree: [{ path: targetPath, mode: '100644', type: 'blob', sha: blob.sha }]
-    })
-  });
-
-  onProgress(80);
-  logStep('commit', 'writing commit...');
-  const newCommit = await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, token, {
-    method: 'POST',
-    body: JSON.stringify({
-      message: `Add ${targetPath} via Repo Uploader`,
-      tree: newTree.sha,
-      parents: [latestCommitSha]
-    })
-  });
-
-  onProgress(92);
-  logStep('ref', 'updating branch pointer...');
-  await ghFetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, token, {
-    method: 'PATCH',
-    body: JSON.stringify({ sha: newCommit.sha })
-  });
-
-  onProgress(100);
-  const fileUrl = `https://github.com/${owner}/${repo}/blob/${branch}/${targetPath}`;
-  logStep('done', `<a href="${fileUrl}" target="_blank">${targetPath}</a>`, 'ok');
-}
-
-uploadBtn.addEventListener('click', async () => {
-  const token = document.getElementById('token').value.trim();
-  const owner = document.getElementById('owner').value.trim();
-  const repo = document.getElementById('repo').value.trim();
-  const branch = document.getElementById('branch').value.trim() || 'main';
-  const folderPath = document.getElementById('path').value.trim();
-
-  uploadBtn.disabled = true;
-  progressWrap.style.display = 'block';
-  logEl.innerHTML = '';
-
-  const filesToUpload = [...state.files];
-  const failedFiles = [];
-
-  for(let i = 0; i < filesToUpload.length; i++){
-    const file = filesToUpload[i];
-    logStep('file', `— ${file.name} (${fmtSize(file.size)}) —`);
-    try{
-      await uploadOneFileWithRetry(file, { token, owner, repo, branch, folderPath }, pct => {
-        progressBar.style.width = pct + '%';
-      }, logStep);
-    } catch(err){
-      logStep('error', err.message, 'err');
-      progressBar.style.width = '0%';
-      failedFiles.push(file);
-    }
-    if(i < filesToUpload.length - 1) await delay(700); // let GitHub's ref replication catch up
-  }
-
-  state.files = [];
-  renderFiles();
-  updateBtn();
-  progressWrap.style.display = 'none';
-
-  if(failedFiles.length){
-    logStep('all done', `${failedFiles.length} file(s) failed. See "Retry failed" below.`, 'err');
-    showRetryButton(failedFiles, { token, owner, repo, branch, folderPath });
-  } else {
-    logStep('all done', 'finished processing selected files.');
-  }
-});
-
-function showRetryButton(failedFiles, config){
-  const existing = document.getElementById('retryFailedBtn');
-  if(existing) existing.remove();
-  const btn = document.createElement('button');
-  btn.id = 'retryFailedBtn';
-  btn.className = 'secondary';
-  btn.style.marginTop = '12px';
-  btn.style.width = '100%';
-  btn.textContent = `Retry ${failedFiles.length} failed file${failedFiles.length > 1 ? 's' : ''}`;
-  btn.onclick = async () => {
-    btn.disabled = true;
-    progressWrap.style.display = 'block';
-    const stillFailed = [];
-    for(let i = 0; i < failedFiles.length; i++){
-      const file = failedFiles[i];
-      logStep('file', `— retrying ${file.name} —`);
-      try{
-        await uploadOneFileWithRetry(file, config, pct => { progressBar.style.width = pct + '%'; }, logStep);
-      } catch(err){
-        logStep('error', err.message, 'err');
-        stillFailed.push(file);
-      }
-      if(i < failedFiles.length - 1) await delay(700);
-    }
-    progressWrap.style.display = 'none';
-    btn.remove();
-    if(stillFailed.length) showRetryButton(stillFailed, config);
-    else logStep('all done', 'all remaining files uploaded successfully.', 'ok');
+  // ---- CONFIGURE YOUR DEFAULTS HERE ----
+  // Paste a fine-grained personal access token below (Contents: read & write, scoped to the
+  // repo you upload to) so you never have to type it in. Owner/repo/branch/folder are just
+  // starting defaults — you can still change them per upload, or save other combos as profiles.
+  const CONFIG = {
+    TOKEN: "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",
+    OWNER: "c1jumpw",
+    REPO: "mkp-tools",
+    BRANCH: "main",
+    FOLDER: "pdl"
   };
-  logEl.appendChild(btn);
-}
+  const TOKEN_HARDCODED = CONFIG.TOKEN && CONFIG.TOKEN !== "PASTE_YOUR_GITHUB_TOKEN_HERE";
+  // ----------------------------------------
 
-/* ---------- init ---------- */
-populateProfileDropdown();
-updateBtn();
+  const LS_PROFILES = "ghup_profiles_v1";
+  const LS_SAVE_TOKEN = "ghup_save_token_v1";
+
+  const el = id => document.getElementById(id);
+  const tokenEl = el("token"), ownerEl = el("owner"), repoEl = el("repo"),
+        branchEl = el("branch"), folderEl = el("folder");
+
+  // Prefill from CONFIG so nothing needs to be typed on a fresh visit.
+  if (TOKEN_HARDCODED) tokenEl.value = CONFIG.TOKEN;
+  if (CONFIG.OWNER) ownerEl.value = CONFIG.OWNER;
+  if (CONFIG.REPO) repoEl.value = CONFIG.REPO;
+  if (CONFIG.BRANCH) branchEl.value = CONFIG.BRANCH;
+  if (CONFIG.FOLDER) folderEl.value = CONFIG.FOLDER;
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      el("panel-" + t.dataset.tab).classList.add("active");
+      if (t.dataset.tab === "settings") renderProfilesList();
+    });
+  });
+
+  // ---------- profile storage ----------
+  function loadProfiles(){
+    try { return JSON.parse(localStorage.getItem(LS_PROFILES) || "[]"); }
+    catch(e){ return []; }
+  }
+  function saveProfiles(list){ localStorage.setItem(LS_PROFILES, JSON.stringify(list)); }
+  function saveTokenEnabled(){ return localStorage.getItem(LS_SAVE_TOKEN) === "1"; }
+
+  el("saveTokenToggle").checked = saveTokenEnabled();
+  el("saveTokenToggle").addEventListener("change", e => {
+    localStorage.setItem(LS_SAVE_TOKEN, e.target.checked ? "1" : "0");
+  });
+
+  function refreshProfileDropdown(){
+    const sel = el("profileSelect");
+    const list = loadProfiles();
+    sel.innerHTML = '<option value="">Load a saved repo…</option>';
+    list.forEach((p, i) => {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `${p.owner}/${p.repo}  (${p.folder || "root"})`;
+      sel.appendChild(opt);
+    });
+  }
+  refreshProfileDropdown();
+
+  el("profileSelect").addEventListener("change", e => {
+    if (e.target.value === "") return;
+    const p = loadProfiles()[+e.target.value];
+    if (!p) return;
+    ownerEl.value = p.owner; repoEl.value = p.repo;
+    branchEl.value = p.branch || "main"; folderEl.value = p.folder || "";
+    if (p.token) tokenEl.value = p.token;
+    validateUploadBtn();
+  });
+
+  el("saveProfileBtn").addEventListener("click", () => {
+    if (!ownerEl.value.trim() || !repoEl.value.trim()){
+      alert("Fill in owner and repository first.");
+      return;
+    }
+    const list = loadProfiles();
+    const entry = {
+      owner: ownerEl.value.trim(),
+      repo: repoEl.value.trim(),
+      branch: branchEl.value.trim() || "main",
+      folder: folderEl.value.trim(),
+      token: saveTokenEnabled() ? tokenEl.value.trim() : ""
+    };
+    const dup = list.findIndex(p => p.owner === entry.owner && p.repo === entry.repo && p.folder === entry.folder);
+    if (dup >= 0) list[dup] = entry; else list.push(entry);
+    saveProfiles(list);
+    refreshProfileDropdown();
+    renderProfilesList();
+  });
+
+  function renderProfilesList(){
+    const list = loadProfiles();
+    const box = el("profilesList");
+    box.innerHTML = "";
+    el("profilesEmpty").style.display = list.length ? "none" : "block";
+    list.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "profile-item";
+      row.innerHTML = `
+        <div class="profile-info">
+          <div class="profile-title">${p.owner}/${p.repo}</div>
+          <div class="profile-sub">${p.branch} · ${p.folder || "(root)"}${p.token ? " · token saved" : ""}</div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn-secondary btn-small" data-act="load" data-i="${i}">Load</button>
+          <button class="btn-danger btn-small" data-act="del" data-i="${i}">Delete</button>
+        </div>`;
+      box.appendChild(row);
+    });
+    box.querySelectorAll("[data-act=load]").forEach(b => b.addEventListener("click", () => {
+      const p = loadProfiles()[+b.dataset.i];
+      ownerEl.value = p.owner; repoEl.value = p.repo;
+      branchEl.value = p.branch || "main"; folderEl.value = p.folder || "";
+      if (p.token) tokenEl.value = p.token;
+      document.querySelector('.tab[data-tab="upload"]').click();
+      validateUploadBtn();
+    }));
+    box.querySelectorAll("[data-act=del]").forEach(b => b.addEventListener("click", () => {
+      const list = loadProfiles();
+      list.splice(+b.dataset.i, 1);
+      saveProfiles(list);
+      refreshProfileDropdown();
+      renderProfilesList();
+    }));
+  }
+
+  el("clearAllBtn").addEventListener("click", () => {
+    if (!confirm("Delete all saved repos from this browser?")) return;
+    saveProfiles([]);
+    refreshProfileDropdown();
+    renderProfilesList();
+  });
+
+  // ---------- file selection ----------
+  const MAX_MB = 40; // practical ceiling observed for the Git Data API blob endpoint
+  let selectedFiles = [];
+
+  const dropZone = el("dropZone"), fileInput = el("fileInput");
+  dropZone.addEventListener("click", () => fileInput.click());
+  ["dragenter","dragover"].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault(); dropZone.classList.add("drag");
+  }));
+  ["dragleave","drop"].forEach(ev => dropZone.addEventListener(ev, e => {
+    e.preventDefault(); dropZone.classList.remove("drag");
+  }));
+  dropZone.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+  fileInput.addEventListener("change", e => addFiles(e.target.files));
+
+  function addFiles(fileListObj){
+    Array.from(fileListObj).forEach(f => selectedFiles.push(f));
+    renderFileList();
+  }
+
+  function fmtSize(bytes){
+    const mb = bytes / (1024*1024);
+    return mb >= 1 ? mb.toFixed(1) + " MB" : (bytes/1024).toFixed(0) + " KB";
+  }
+
+  function renderFileList(){
+    const box = el("fileList");
+    box.innerHTML = "";
+    let anyOversize = false;
+    selectedFiles.forEach((f, i) => {
+      const oversize = f.size > MAX_MB * 1024 * 1024;
+      if (oversize) anyOversize = true;
+      const row = document.createElement("div");
+      row.className = "file-row";
+      row.innerHTML = `
+        <span class="file-name">${f.name}</span>
+        <span class="file-size ${oversize ? 'oversize' : ''}">${fmtSize(f.size)}</span>
+        <span class="file-remove" data-i="${i}">✕</span>`;
+      box.appendChild(row);
+    });
+    box.querySelectorAll(".file-remove").forEach(b => b.addEventListener("click", () => {
+      selectedFiles.splice(+b.dataset.i, 1);
+      renderFileList();
+    }));
+    const warn = el("sizeWarning");
+    if (anyOversize){
+      warn.style.display = "block";
+      warn.textContent = `One or more files are over ~${MAX_MB}MB. GitHub's blob API tends to reject those — they'll be skipped with a clear error instead of retried. Use Git LFS or a local git push for those files.`;
+    } else {
+      warn.style.display = "none";
+    }
+    validateUploadBtn();
+  }
+
+  function validateUploadBtn(){
+    const ready = selectedFiles.length > 0 && tokenEl.value.trim() && ownerEl.value.trim() && repoEl.value.trim() && branchEl.value.trim();
+    el("uploadBtn").disabled = !ready;
+  }
+  [tokenEl, ownerEl, repoEl, branchEl, folderEl].forEach(i => i.addEventListener("input", validateUploadBtn));
+
+  // ---------- GitHub API helpers ----------
+  function api(path, opts){
+    return fetch(`https://api.github.com${path}`, Object.assign({
+      headers: {
+        "Authorization": `Bearer ${tokenEl.value.trim()}`,
+        "Accept": "application/vnd.github+json"
+      }
+    }, opts));
+  }
+
+  function arrayBufferToBase64(buffer){
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize){
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  async function uploadOneFile(file, owner, repo, branch, folder, stepFn){
+    // 1. read
+    stepFn("read", "pending", `encoding ${file.name}...`);
+    const buf = await file.arrayBuffer();
+    const b64 = arrayBufferToBase64(buf);
+    stepFn("read", "ok");
+
+    // 2. blob
+    stepFn("blob", "pending", "creating blob object...");
+    const blobRes = await api(`/repos/${owner}/${repo}/git/blobs`, {
+      method: "POST",
+      body: JSON.stringify({ content: b64, encoding: "base64" })
+    });
+    if (!blobRes.ok){
+      const errBody = await blobRes.json().catch(() => ({}));
+      const msg = errBody.message || `HTTP ${blobRes.status}`;
+      const isSizeError = blobRes.status === 422 && /too large/i.test(msg);
+      stepFn("blob", "error", msg);
+      return { ok:false, retryable: !isSizeError, message: msg };
+    }
+    const blobSha = (await blobRes.json()).sha;
+    stepFn("blob", "ok");
+
+    const path = folder ? `${folder.replace(/^\/+|\/+$/g,"")}/${file.name}` : file.name;
+
+    // 3. ref
+    stepFn("ref", "pending", `reading branch ${branch}...`);
+    const refRes = await api(`/repos/${owner}/${repo}/git/refs/heads/${branch}`);
+    if (!refRes.ok){
+      const msg = (await refRes.json().catch(()=>({}))).message || `HTTP ${refRes.status}`;
+      stepFn("ref", "error", msg);
+      return { ok:false, retryable:true, message: msg };
+    }
+    const refData = await refRes.json();
+    const parentCommitSha = refData.object.sha;
+
+    const commitRes = await api(`/repos/${owner}/${repo}/git/commits/${parentCommitSha}`);
+    const commitData = await commitRes.json();
+    const baseTreeSha = commitData.tree.sha;
+    stepFn("ref", "ok");
+
+    // 4. tree
+    stepFn("tree", "pending", `placing at ${path}...`);
+    const treeRes = await api(`/repos/${owner}/${repo}/git/trees`, {
+      method: "POST",
+      body: JSON.stringify({
+        base_tree: baseTreeSha,
+        tree: [{ path, mode: "100644", type: "blob", sha: blobSha }]
+      })
+    });
+    if (!treeRes.ok){
+      const msg = (await treeRes.json().catch(()=>({}))).message || `HTTP ${treeRes.status}`;
+      stepFn("tree", "error", msg);
+      return { ok:false, retryable:true, message: msg };
+    }
+    const newTreeSha = (await treeRes.json()).sha;
+    stepFn("tree", "ok");
+
+    // 5. commit
+    stepFn("commit", "pending", "writing commit...");
+    const newCommitRes = await api(`/repos/${owner}/${repo}/git/commits`, {
+      method: "POST",
+      body: JSON.stringify({
+        message: `Add ${path}`,
+        tree: newTreeSha,
+        parents: [parentCommitSha]
+      })
+    });
+    if (!newCommitRes.ok){
+      const msg = (await newCommitRes.json().catch(()=>({}))).message || `HTTP ${newCommitRes.status}`;
+      stepFn("commit", "error", msg);
+      return { ok:false, retryable:true, message: msg };
+    }
+    const newCommitSha = (await newCommitRes.json()).sha;
+    stepFn("commit", "ok");
+
+    // 6. update ref
+    stepFn("ref-update", "pending", "updating branch pointer...");
+    const updateRes = await api(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
+      method: "PATCH",
+      body: JSON.stringify({ sha: newCommitSha })
+    });
+    if (!updateRes.ok){
+      const msg = (await updateRes.json().catch(()=>({}))).message || `HTTP ${updateRes.status}`;
+      stepFn("ref-update", "error", msg);
+      const isFastForward = /fast forward/i.test(msg);
+      return { ok:false, retryable:true, message: msg };
+    }
+    stepFn("ref-update", "ok");
+
+    const fileUrl = `https://github.com/${owner}/${repo}/blob/${branch}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    return { ok:true, url: fileUrl, path };
+  }
+
+  async function uploadWithRetry(file, owner, repo, branch, folder, logBox){
+    const MAX_ATTEMPTS = 4;
+    const oversize = file.size > MAX_MB * 1024 * 1024;
+
+    const item = document.createElement("div");
+    item.className = "log-item";
+    item.innerHTML = `
+      <div class="log-head">
+        <span class="log-name">${file.name}</span>
+        <span class="log-size">${fmtSize(file.size)}</span>
+      </div>
+      <div class="log-steps"></div>
+      <div class="log-link"></div>`;
+    logBox.appendChild(item);
+    const stepsBox = item.querySelector(".log-steps");
+    const linkBox = item.querySelector(".log-link");
+
+    function stepFn(tag, status, detail){
+      const line = document.createElement("div");
+      const cls = status === "ok" ? "step-ok" : status === "error" ? "step-err" : "";
+      const mark = status === "ok" ? "done" : status === "error" ? "error" : "…";
+      line.className = cls;
+      line.innerHTML = `<span class="step-tag">${tag}</span>${detail ? detail : mark}`;
+      stepsBox.appendChild(line);
+    }
+
+    if (oversize){
+      stepFn("size", "error", `File is ~${fmtSize(file.size)}, over the ~${MAX_MB}MB practical limit for this method. Use Git LFS or a local git push instead.`);
+      return { ok:false, file };
+    }
+
+    let attempt = 0;
+    while (attempt < MAX_ATTEMPTS){
+      attempt++;
+      if (attempt > 1){
+        const wait = 800 * Math.pow(2, attempt - 2);
+        const note = document.createElement("div");
+        note.className = "step-err";
+        note.textContent = `retrying (attempt ${attempt}/${MAX_ATTEMPTS}) after ${(wait/1000).toFixed(1)}s...`;
+        stepsBox.appendChild(note);
+        await sleep(wait);
+      }
+      const result = await uploadOneFile(file, owner, repo, branch, folder, stepFn);
+      if (result.ok){
+        linkBox.innerHTML = `<a href="${result.url}" target="_blank">${result.path}</a>`;
+        return { ok:true, file };
+      }
+      if (!result.retryable) return { ok:false, file };
+      // retryable: loop again unless out of attempts
+    }
+    const failNote = document.createElement("div");
+    failNote.className = "step-err";
+    failNote.textContent = "gave up after retries.";
+    stepsBox.appendChild(failNote);
+    return { ok:false, file };
+  }
+
+  let failedFiles = [];
+
+  async function runUpload(filesToUpload){
+    const owner = ownerEl.value.trim(), repo = repoEl.value.trim(),
+          branch = branchEl.value.trim() || "main", folder = folderEl.value.trim();
+
+    el("uploadBtn").disabled = true;
+    el("logCard").style.display = "block";
+    el("retryBar").style.display = "none";
+    const logBox = el("log");
+    logBox.innerHTML = "";
+
+    const stillFailed = [];
+    for (const file of filesToUpload){
+      const res = await uploadWithRetry(file, owner, repo, branch, folder, logBox);
+      if (!res.ok) stillFailed.push(file);
+      await sleep(700); // let GitHub's replicas settle before the next ref read
+    }
+
+    failedFiles = stillFailed;
+    if (failedFiles.length){
+      el("retryBar").style.display = "flex";
+    }
+    el("uploadBtn").disabled = false;
+  }
+
+  el("uploadBtn").addEventListener("click", () => {
+    if (!selectedFiles.length) return;
+    runUpload(selectedFiles.slice());
+  });
+
+  el("retryFailedBtn").addEventListener("click", () => {
+    if (!failedFiles.length) return;
+    runUpload(failedFiles.slice());
+  });
+
+  validateUploadBtn(); // reflect any CONFIG defaults prefilled above
+
+})();
 </script>
 </body>
 </html>
