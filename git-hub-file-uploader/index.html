@@ -135,16 +135,19 @@
   <div class="card">
     <h2>Destination</h2>
 
-    <div class="profile-bar">
+    <label>Repository</label>
+    <select id="repoSelect"><option value="">Loading your repos…</option></select>
+    <div class="hint" id="repoHint">Pulled live from your account — new repos show up automatically.</div>
+
+    <div class="profile-bar" style="margin-top:12px;">
       <select id="folderPreset">
-        <option value="">Choose a subfolder…</option>
+        <option value="">Choose a saved folder…</option>
       </select>
       <button class="btn-secondary btn-small" id="savePresetBtn">Save current</button>
     </div>
 
-    <label>Folder (inside pdl/media)</label>
-    <input type="text" id="folder" placeholder="e.g. wealth  (blank = pdl/media root)">
-    <div class="hint">This relay only ever writes inside <strong>pdl/media</strong> on the mkp-tools repo — the subfolder here just picks where inside it.</div>
+    <label>Folder</label>
+    <input type="text" id="folder" placeholder="e.g. pdl/media/wealth  (blank = repo root)">
   </div>
 
   <div class="card">
@@ -174,50 +177,91 @@
 
   // ---- CONFIGURE YOUR RELAY HERE ----
   // Paste in the values shown after you deploy the Cloudflare Worker (see the setup
-  // instructions you were given alongside this file).
+  // instructions you were given alongside this file). UPLOAD_KEY is the *broad* key —
+  // different from the PDL app's key — that unlocks writes across all your repos.
 const CONFIG = {
   WORKER_URL: "https://pdl-relay.c1-jumpw.workers.dev",
   UPLOAD_KEY: "ncbchfgy67uGHCds8fgbrjfsg7"
 };
   // ------------------------------------
 
-  const LS_PRESETS = "ghup_folder_presets_v1";
+  const LS_PRESETS = "ghup_dest_presets_v2";
   const el = id => document.getElementById(id);
   const folderEl = el("folder");
-  folderEl.value = CONFIG.DEFAULT_FOLDER || "";
 
-  // ---------- relay connectivity check ----------
-  async function checkRelay(){
-    try{
-      const res = await relayFetch("/health", { method: "GET" });
-      if (!res.ok) throw new Error("bad status " + res.status);
-      const data = await res.json();
-      el("statusPill").className = "status-pill ok";
-      el("statusText").textContent = `Connected · writes confined to ${data.allowed && data.allowed.length ? data.allowed.join(", ") : "(no restriction set)"}`;
-    } catch(e){
-      el("statusPill").className = "status-pill bad";
-      el("statusText").textContent = "Can't reach the relay — check CONFIG.WORKER_URL at the top of this file.";
-    }
-  }
+  let repos = [];
+  let selectedRepo = "";
+  let selectedBranch = "main";
 
   function relayFetch(path, opts){
     opts = opts || {};
-    opts.headers = Object.assign({ "X-App-Key": CONFIG.APP_KEY }, opts.headers || {});
+    opts.headers = Object.assign({ "X-Upload-Key": CONFIG.UPLOAD_KEY }, opts.headers || {});
     return fetch(CONFIG.WORKER_URL.replace(/\/+$/, "") + path, opts);
   }
 
-  // ---------- folder presets ----------
+  // ---------- relay connectivity + repo discovery ----------
+  async function loadRepos(){
+    if (!CONFIG.WORKER_URL || CONFIG.WORKER_URL.includes("PASTE-YOUR")){
+      el("statusPill").className = "status-pill bad";
+      el("statusText").textContent = "CONFIG.WORKER_URL still has a placeholder — paste your real Worker URL at the top of this file.";
+      return;
+    }
+    let res;
+    try{
+      res = await relayFetch("/repo-list", { method: "GET" });
+    } catch(networkErr){
+      el("statusPill").className = "status-pill bad";
+      el("statusText").textContent = "Network error reaching the relay: " + networkErr.message + " — double-check the Worker URL is correct and the Worker is deployed.";
+      return;
+    }
+    if (res.status === 401){
+      el("statusPill").className = "status-pill bad";
+      el("statusText").textContent = "The relay rejected the upload key (401) — make sure CONFIG.UPLOAD_KEY here matches UPLOAD_APP_KEY in the Worker's settings exactly.";
+      return;
+    }
+    if (!res.ok){
+      const body = await res.json().catch(() => ({}));
+      el("statusPill").className = "status-pill bad";
+      el("statusText").textContent = `Relay error (${res.status}): ${body.message || "unknown error"}`;
+      return;
+    }
+    repos = await res.json();
+    el("statusPill").className = "status-pill ok";
+    el("statusText").textContent = `Connected · ${repos.length} repo${repos.length === 1 ? "" : "s"} available`;
+    refreshRepoDropdown();
+  }
+
+  function refreshRepoDropdown(){
+    const sel = el("repoSelect");
+    sel.innerHTML = '<option value="">Choose a repository…</option>';
+    repos.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.name;
+      opt.dataset.branch = r.default_branch;
+      opt.textContent = r.name + (r.private ? " (private)" : "");
+      sel.appendChild(opt);
+    });
+  }
+
+  el("repoSelect").addEventListener("change", e => {
+    const opt = e.target.selectedOptions[0];
+    selectedRepo = e.target.value;
+    selectedBranch = (opt && opt.dataset.branch) || "main";
+    validateUploadBtn();
+  });
+
+  // ---------- destination presets ----------
   function loadPresets(){ try { return JSON.parse(localStorage.getItem(LS_PRESETS) || "[]"); } catch(e){ return []; } }
   function savePresets(list){ localStorage.setItem(LS_PRESETS, JSON.stringify(list)); }
 
   function refreshPresetDropdown(){
     const sel = el("folderPreset");
     const list = loadPresets();
-    sel.innerHTML = '<option value="">Choose a subfolder…</option>';
+    sel.innerHTML = '<option value="">Choose a saved folder…</option>';
     list.forEach((p, i) => {
       const opt = document.createElement("option");
       opt.value = i;
-      opt.textContent = p || "(pdl/media root)";
+      opt.textContent = `${p.repo} / ${p.folder || "(root)"}`;
       sel.appendChild(opt);
     });
   }
@@ -225,12 +269,19 @@ const CONFIG = {
 
   el("folderPreset").addEventListener("change", e => {
     if (e.target.value === "") return;
-    folderEl.value = loadPresets()[+e.target.value] || "";
+    const p = loadPresets()[+e.target.value];
+    if (!p) return;
+    el("repoSelect").value = p.repo;
+    el("repoSelect").dispatchEvent(new Event("change"));
+    folderEl.value = p.folder || "";
   });
   el("savePresetBtn").addEventListener("click", () => {
+    if (!selectedRepo){ alert("Choose a repository first."); return; }
     const list = loadPresets();
-    const val = folderEl.value.trim();
-    if (!list.includes(val)){ list.push(val); savePresets(list); refreshPresetDropdown(); }
+    const entry = { repo: selectedRepo, folder: folderEl.value.trim() };
+    if (!list.some(p => p.repo === entry.repo && p.folder === entry.folder)){
+      list.push(entry); savePresets(list); refreshPresetDropdown();
+    }
   });
 
   // ---------- file selection ----------
@@ -288,7 +339,7 @@ const CONFIG = {
   }
 
   function validateUploadBtn(){
-    el("uploadBtn").disabled = selectedFiles.length === 0;
+    el("uploadBtn").disabled = selectedFiles.length === 0 || !selectedRepo;
   }
 
   // ---------- relay-backed GitHub Git Data flow ----------
@@ -306,13 +357,13 @@ const CONFIG = {
 
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-  async function uploadOneFile(file, folder, stepFn){
+  async function uploadOneFile(file, repo, branch, folder, stepFn){
     stepFn("read", "pending", `encoding ${file.name}...`);
     const b64 = await fileToBase64(file);
     stepFn("read", "ok");
 
     stepFn("blob", "pending", "creating blob object...");
-    const blobRes = await relayFetch("/blob", {
+    const blobRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/blob`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: b64, encoding: "base64" })
@@ -328,10 +379,10 @@ const CONFIG = {
     stepFn("blob", "ok");
 
     const cleanFolder = folder.replace(/^\/+|\/+$/g, "");
-    const path = cleanFolder ? `pdl/media/${cleanFolder}/${file.name}` : `pdl/media/${file.name}`;
+    const path = cleanFolder ? `${cleanFolder}/${file.name}` : file.name;
 
     stepFn("ref", "pending", "reading branch...");
-    const refRes = await relayFetch("/ref", { method: "GET" });
+    const refRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/ref?branch=${encodeURIComponent(branch)}`, { method: "GET" });
     if (!refRes.ok){
       const msg = (await refRes.json().catch(()=>({}))).message || `HTTP ${refRes.status}`;
       stepFn("ref", "error", msg);
@@ -340,13 +391,13 @@ const CONFIG = {
     const refData = await refRes.json();
     const parentCommitSha = refData.object.sha;
 
-    const commitRes = await relayFetch(`/commit/${parentCommitSha}`, { method: "GET" });
+    const commitRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/commit/${parentCommitSha}`, { method: "GET" });
     const commitData = await commitRes.json();
     const baseTreeSha = commitData.tree.sha;
     stepFn("ref", "ok");
 
     stepFn("tree", "pending", `placing at ${path}...`);
-    const treeRes = await relayFetch("/tree", {
+    const treeRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/tree`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -363,7 +414,7 @@ const CONFIG = {
     stepFn("tree", "ok");
 
     stepFn("commit", "pending", "writing commit...");
-    const newCommitRes = await relayFetch("/commit", {
+    const newCommitRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/commit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: `Add ${path}`, tree: newTreeSha, parents: [parentCommitSha] })
@@ -377,7 +428,7 @@ const CONFIG = {
     stepFn("commit", "ok");
 
     stepFn("ref-update", "pending", "updating branch pointer...");
-    const updateRes = await relayFetch("/ref", {
+    const updateRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/ref?branch=${encodeURIComponent(branch)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sha: newCommitSha })
@@ -389,11 +440,11 @@ const CONFIG = {
     }
     stepFn("ref-update", "ok");
 
-    const fileUrl = `https://github.com/c1jumpw/mkp-tools/blob/main/${path.split("/").map(encodeURIComponent).join("/")}`;
+    const fileUrl = `https://github.com/c1jumpw/${repo}/blob/${branch}/${path.split("/").map(encodeURIComponent).join("/")}`;
     return { ok:true, url: fileUrl, path };
   }
 
-  async function uploadWithRetry(file, folder, logBox){
+  async function uploadWithRetry(file, repo, branch, folder, logBox){
     const MAX_ATTEMPTS = 4;
     const oversize = file.size > MAX_MB * 1024 * 1024;
 
@@ -435,7 +486,7 @@ const CONFIG = {
         stepsBox.appendChild(note);
         await sleep(wait);
       }
-      const result = await uploadOneFile(file, folder, stepFn);
+      const result = await uploadOneFile(file, repo, branch, folder, stepFn);
       if (result.ok){
         linkBox.innerHTML = `<a href="${result.url}" target="_blank">${result.path}</a>`;
         return { ok:true, file };
@@ -453,6 +504,8 @@ const CONFIG = {
 
   async function runUpload(filesToUpload){
     const folder = folderEl.value.trim();
+    const repo = selectedRepo, branch = selectedBranch;
+    if (!repo){ alert("Choose a repository first."); return; }
 
     el("uploadBtn").disabled = true;
     el("logCard").style.display = "block";
@@ -462,7 +515,7 @@ const CONFIG = {
 
     const stillFailed = [];
     for (const file of filesToUpload){
-      const res = await uploadWithRetry(file, folder, logBox);
+      const res = await uploadWithRetry(file, repo, branch, folder, logBox);
       if (!res.ok) stillFailed.push(file);
       await sleep(700); // let GitHub's replicas settle before the next ref read
     }
@@ -484,7 +537,7 @@ const CONFIG = {
     runUpload(failedFiles.slice());
   });
 
-  checkRelay();
+  loadRepos();
 })();
 </script>
 </body>
