@@ -179,10 +179,10 @@
   // Paste in the values shown after you deploy the Cloudflare Worker (see the setup
   // instructions you were given alongside this file). UPLOAD_KEY is the *broad* key —
   // different from the PDL app's key — that unlocks writes across all your repos.
-const CONFIG = {
-  WORKER_URL: "https://pdl-relay.c1-jumpw.workers.dev",
-  UPLOAD_KEY: "ncbchfgy67uGHCds8fgbrjfsg7"
-};
+  const CONFIG = {
+    WORKER_URL: "https://pdl-relay.c1-jumpw.workers.dev/",
+    UPLOAD_KEY: "ncbchfgy67uGHCds8fgbrjfsg7"
+  };
   // ------------------------------------
 
   const LS_PRESETS = "ghup_dest_presets_v2";
@@ -285,7 +285,9 @@ const CONFIG = {
   });
 
   // ---------- file selection ----------
-  const MAX_MB = 95; // GitHub's Git Data API hard-blocks blobs over 100MB; we leave a safety margin
+  const HARD_MAX_MB = 2000; // GitHub Release assets cap at 2GB — a true hard ceiling
+  const SOFT_MAX_MB = 35;   // above this, the git blob API is unreliable in practice and
+                             // files auto-fall back to Release-asset storage instead
   let selectedFiles = [];
 
   const dropZone = el("dropZone"), fileInput = el("fileInput");
@@ -312,15 +314,17 @@ const CONFIG = {
   function renderFileList(){
     const box = el("fileList");
     box.innerHTML = "";
-    let anyOversize = false;
+    let anyHard = false, anySoft = false;
     selectedFiles.forEach((f, i) => {
-      const oversize = f.size > MAX_MB * 1024 * 1024;
-      if (oversize) anyOversize = true;
+      const hard = f.size > HARD_MAX_MB * 1024 * 1024;
+      const soft = !hard && f.size > SOFT_MAX_MB * 1024 * 1024;
+      if (hard) anyHard = true;
+      if (soft) anySoft = true;
       const row = document.createElement("div");
       row.className = "file-row";
       row.innerHTML = `
         <span class="file-name">${f.name}</span>
-        <span class="file-size ${oversize ? 'oversize' : ''}">${fmtSize(f.size)}</span>
+        <span class="file-size ${hard ? 'oversize' : ''}">${fmtSize(f.size)}</span>
         <span class="file-remove" data-i="${i}">✕</span>`;
       box.appendChild(row);
     });
@@ -329,9 +333,12 @@ const CONFIG = {
       renderFileList();
     }));
     const warn = el("sizeWarning");
-    if (anyOversize){
+    if (anyHard){
       warn.style.display = "block";
-      warn.textContent = `One or more files are over ~${MAX_MB}MB. GitHub hard-blocks anything over 100MB from this API — those will be skipped with a clear error instead of retried. Use Git LFS or a local git push for those.`;
+      warn.textContent = `One or more files are over GitHub's hard 2GB-per-file ceiling — those can't be stored here at all.`;
+    } else if (anySoft){
+      warn.style.display = "block";
+      warn.textContent = `Files over ~${SOFT_MAX_MB}MB usually can't be committed directly (GitHub's git API is unreliable above this in practice) — those will automatically upload as GitHub Release assets instead, which reliably handles up to 2GB. They'll still be reachable at a direct link, but won't appear as a normal file in the repo folder tree.`;
     } else {
       warn.style.display = "none";
     }
@@ -357,6 +364,75 @@ const CONFIG = {
 
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
+  async function writePointerFile(repo, branch, path, contentObj, message){
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
+    const blobRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/blob`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: b64, encoding: "base64" })
+    });
+    if (!blobRes.ok) throw new Error((await blobRes.json().catch(()=>({}))).message || "Could not write pointer blob");
+    const blobSha = (await blobRes.json()).sha;
+
+    const refRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/ref?branch=${encodeURIComponent(branch)}`, { method: "GET" });
+    if (!refRes.ok) throw new Error((await refRes.json().catch(()=>({}))).message || "ref read failed");
+    const refData = await refRes.json();
+    const parentSha = refData.object.sha;
+    const commitRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/commit/${parentSha}`, { method: "GET" });
+    const baseTree = (await commitRes.json()).tree.sha;
+
+    const treeRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/tree`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base_tree: baseTree, tree: [{ path, mode: "100644", type: "blob", sha: blobSha }] })
+    });
+    if (!treeRes.ok) throw new Error((await treeRes.json().catch(()=>({}))).message || "tree error");
+    const newTreeSha = (await treeRes.json()).sha;
+
+    const commitNewRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/commit`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, tree: newTreeSha, parents: [parentSha] })
+    });
+    if (!commitNewRes.ok) throw new Error((await commitNewRes.json().catch(()=>({}))).message || "commit error");
+    const newCommitSha = (await commitNewRes.json()).sha;
+
+    const updateRes = await relayFetch(`/repo/${encodeURIComponent(repo)}/ref?branch=${encodeURIComponent(branch)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sha: newCommitSha })
+    });
+    if (!updateRes.ok) throw new Error((await updateRes.json().catch(()=>({}))).message || "ref update error");
+  }
+
+  async function uploadAsReleaseAsset(file, repo, branch, folder, stepFn){
+    stepFn("release", "pending", "storing as a GitHub Release asset instead (reliable up to 2GB)...");
+    try{
+      const res = await relayFetch(`/repo/${encodeURIComponent(repo)}/release-asset?name=${encodeURIComponent(file.name)}`, {
+        method: "POST",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file
+      });
+      if (!res.ok){
+        const msg = (await res.json().catch(()=>({}))).message || `HTTP ${res.status}`;
+        stepFn("release", "error", msg);
+        return { ok:false, retryable:true, message: msg };
+      }
+      const data = await res.json();
+      stepFn("release", "ok");
+
+      // The asset itself now lives outside the repo tree, in a Release — write a small
+      // pointer file at the folder location the person actually chose, so PDL (and anyone
+      // browsing the repo) can find it right where they expect it.
+      const cleanFolder = folder.replace(/^\/+|\/+$/g, "");
+      const pointerPath = (cleanFolder ? `${cleanFolder}/${file.name}` : file.name) + ".ghrelease.json";
+      stepFn("pointer", "pending", `linking it at ${pointerPath}...`);
+      await writePointerFile(repo, branch, pointerPath, { url: data.browser_download_url, size: file.size }, `Add ${pointerPath}`);
+      stepFn("pointer", "ok");
+
+      return { ok:true, url: data.browser_download_url, path: pointerPath };
+    } catch(err){
+      stepFn("release", "error", err.message);
+      return { ok:false, retryable:true, message: err.message };
+    }
+  }
+
   async function uploadOneFile(file, repo, branch, folder, stepFn){
     stepFn("read", "pending", `encoding ${file.name}...`);
     const b64 = await fileToBase64(file);
@@ -372,8 +448,12 @@ const CONFIG = {
       const errBody = await blobRes.json().catch(() => ({}));
       const msg = errBody.message || `HTTP ${blobRes.status}`;
       const isSizeError = blobRes.status === 422 && /too large/i.test(msg);
+      if (isSizeError){
+        stepFn("blob", "error", msg);
+        return await uploadAsReleaseAsset(file, repo, branch, folder, stepFn);
+      }
       stepFn("blob", "error", msg);
-      return { ok:false, retryable: !isSizeError, message: msg };
+      return { ok:false, retryable: false, message: msg };
     }
     const blobSha = (await blobRes.json()).sha;
     stepFn("blob", "ok");
@@ -446,7 +526,7 @@ const CONFIG = {
 
   async function uploadWithRetry(file, repo, branch, folder, logBox){
     const MAX_ATTEMPTS = 4;
-    const oversize = file.size > MAX_MB * 1024 * 1024;
+    const oversize = file.size > HARD_MAX_MB * 1024 * 1024;
 
     const item = document.createElement("div");
     item.className = "log-item";
@@ -471,7 +551,7 @@ const CONFIG = {
     }
 
     if (oversize){
-      stepFn("size", "error", `File is ~${fmtSize(file.size)}, over the ~${MAX_MB}MB practical limit for this method. Use Git LFS or a local git push instead.`);
+      stepFn("size", "error", `File is ~${fmtSize(file.size)}, over GitHub's hard 2GB-per-file limit. Nothing on GitHub can store this — it needs to be split or hosted elsewhere.`);
       return { ok:false, file };
     }
 
