@@ -1,0 +1,33 @@
+Prompt: split [TOOL NAME] out of the shared uny-tools Supabase project
+
+Paste this into a new conversation when you're ready to give a tool its own dedicated Supabase project. Fill in [TOOL NAME] and the specifics in the "details for this tool" section — the UnyBase example is filled in as a worked reference.
+
+Context
+
+Several internal "uny" tools currently share one Supabase project called uny-tools, to keep infrastructure simple while there were only one or two of them. Each tool's tables are namespaced with a prefix (e.g. unybase_ for the UnyBase account system) so they don't collide with each other or with the project's original app, ContentFlow (which owns the unprefixed profiles, pillars, ideas, files, and related tables).
+
+I now want to pull [TOOL NAME] out into its own dedicated Supabase project, so it gets full data and auth isolation and can eventually be managed, billed, and scaled independently.
+
+What I need you to do
+Create a new Supabase project for [TOOL NAME] (confirm the cost with me first — Supabase project creation isn't free).
+Recreate the schema there: tables, enums, RLS policies, functions, and triggers, copied from uny-tools. Keep the same unybase_-style prefix on table/function names even though it's no longer needed for collision-avoidance — it means the app's code doesn't need to change, only its environment variables (just point NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY at the new project). Only drop the prefix if I explicitly ask for that cleanup.
+Copy over any existing data in those tables (workspaces, credentials, etc.) from uny-tools into the new project.
+Handle existing user accounts — this is the hard part. Supabase Auth keeps one auth.users table per project, and there's no supported "export users to another project" flow. Options, roughly in order of how much I'd prefer them:
+If there are still few/no real users on this tool, it may be simplest to just have them sign up fresh on the new project and accept the loss of the old accounts.
+If accounts must be preserved: investigate copying auth.users (and related auth.identities rows) directly via SQL between projects. Password hashes are portable bcrypt, so this is technically possible, but treat it as a real migration — test it, and flag to me clearly what will and won't carry over (sessions, confirmed-email status, MFA factors, etc. all live in their own auth.* tables and need the same treatment).
+Don't attempt a users migration silently — tell me the tradeoffs and let me decide before touching anything with live user data.
+Update the app's Vercel environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY) to point at the new project, and redeploy.
+Configure Supabase Auth on the new project: set Site URL and add the production URL + /auth/callback to Redirect URLs (this is dashboard-only, no API for it — tell me exactly what to click).
+Verify end-to-end on the new project before touching the old one: fetch key pages, confirm login/signup work, confirm the RLS policies behave as expected.
+Only once I've confirmed it's working, remove that tool's prefixed tables, enums, functions, and trigger from uny-tools. Don't drop anything until I've explicitly said the new project is good.
+Details for this tool: UnyBase (fill in your own if different)
+uny-tools project ref: uwomibcrrrahucqtsvte (org xhpcdkmnzcnahpjtmamc, "c3jumpw's Org")
+Tables: unybase_profiles, unybase_workspaces, unybase_workspace_members, unybase_workspace_invites, unybase_credentials, unybase_domain_credentials
+Enums: unybase_user_kind, unybase_setup_mode, unybase_plan_tier, unybase_billing_status, unybase_member_role
+Functions: unybase_is_workspace_member, unybase_handle_new_user, unybase_lookup_invite_by_token, unybase_accept_invite
+Trigger: on_unybase_user_created (on auth.users, calls unybase_handle_new_user)
+App: Vercel project unybase-app (team team_EhbsLA85gVYFcKhJth5adAyd, "C3's projects" / c3jumpw), live at https://unybase-app.vercel.app
+Env vars to repoint: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY on the unybase-app Vercel project
+One more thing
+
+Before doing anything destructive (dropping tables, deleting/pausing a project), stop and confirm with me explicitly, even if this prompt asked for the split — a lot can change between when I write this and when I paste it back to you.
